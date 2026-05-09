@@ -19,6 +19,66 @@ import streamlit as st
 from scipy import stats
 from verify import model, CARDIO
 
+
+# -------------------------------------------------------------------
+# MODULE-LEVEL: run_simulation — must be at module level so st.cache_data
+# can correctly hash inputs across reruns. Defining inside render() breaks
+# caching because the function object is re-created on every rerun.
+# Params are passed as a *frozen* tuple of tuples so they're hashable for cache key.
+# -------------------------------------------------------------------
+@st.cache_data(show_spinner="Running Monte Carlo simulation…")
+def run_simulation(n, params_tuple, use_corr):
+    """Run n Monte Carlo iterations.
+
+    params_tuple: tuple of (key, (low, mode, high)) tuples — hashable for cache.
+    use_corr: if True, apply correlation matrix via Gaussian copula.
+    Returns DataFrame of (Growth, Margin_Y0, Margin_Target, Entry_Mult, Exit_Mult, MOIC, IRR).
+    """
+    params = dict(params_tuple)
+    keys = list(params.keys())
+    n_vars = len(keys)
+
+    if use_corr:
+        corr_mat = np.array([
+            [1.00, 0.10, 0.20, 0.10, 0.50],
+            [0.10, 1.00, 0.30, 0.05, 0.10],
+            [0.20, 0.30, 1.00, 0.05, 0.30],
+            [0.10, 0.05, 0.05, 1.00, 0.40],
+            [0.50, 0.10, 0.30, 0.40, 1.00],
+        ])
+        L = np.linalg.cholesky(corr_mat)
+        z = np.random.standard_normal((n, n_vars))
+        u = stats.norm.cdf(z @ L.T)
+    else:
+        u = np.random.uniform(0, 1, size=(n, n_vars))
+
+    samples = np.zeros_like(u)
+    for i, key in enumerate(keys):
+        lo, mode, hi = params[key]
+        c = (mode - lo) / (hi - lo)
+        below = u[:, i] < c
+        samples[below, i] = lo + np.sqrt(u[below, i] * (hi - lo) * (mode - lo))
+        samples[~below, i] = hi - np.sqrt((1 - u[~below, i]) * (hi - lo) * (hi - mode))
+
+    moics = np.zeros(n)
+    irrs  = np.zeros(n)
+    for i in range(n):
+        cfg = dict(CARDIO)
+        cfg["Growth"]        = samples[i, 0] / 100
+        cfg["Margin_Y0"]     = samples[i, 1] / 100
+        cfg["Margin_Target"] = samples[i, 2] / 100
+        cfg["Entry_Mult"]    = samples[i, 3]
+        cfg["Exit_Mult"]     = samples[i, 4]
+        cfg["Debt_Mult"]     = min(6.0, 0.60 * samples[i, 3])
+        out = model(cfg, basis="EBITDA")
+        moics[i] = out["moic"]
+        irrs[i]  = out["irr"]
+
+    df = pd.DataFrame(samples, columns=keys)
+    df["MOIC"] = moics
+    df["IRR"]  = irrs * 100
+    return df
+
 # page_config moved to app.py
 # ---------- Styling ----------
 
@@ -202,69 +262,8 @@ def render():
     em_out_lo, em_out_mod, em_out_hi = st.session_state["em_out_lo"], st.session_state["em_out_mod"], st.session_state["em_out_hi"]
 
 
-    # -------------------------------------------------------------------
-    # Sampling — Gaussian copula approach for correlations
-    # -------------------------------------------------------------------
-    @st.cache_data
-    def run_simulation(n, params, use_corr):
-        """Run n Monte Carlo iterations.
-
-        params: dict of (low, mode, high) tuples for each input
-        use_corr: if True, apply correlation matrix via Gaussian copula
-
-        Returns DataFrame of (Growth, Margin_Y0, Margin_Target, Entry_Mult, Exit_Mult, MOIC, IRR)
-        """
-        keys = list(params.keys())
-        n_vars = len(keys)
-
-        if use_corr:
-            # Correlation matrix — cycle-driven variables move together
-            # Order: Growth, Margin_Y0, Margin_Target, Entry_Mult, Exit_Mult
-            corr_mat = np.array([
-                [1.00, 0.10, 0.20, 0.10, 0.50],   # Growth
-                [0.10, 1.00, 0.30, 0.05, 0.10],   # Margin_Y0
-                [0.20, 0.30, 1.00, 0.05, 0.30],   # Margin_Target
-                [0.10, 0.05, 0.05, 1.00, 0.40],   # Entry_Mult
-                [0.50, 0.10, 0.30, 0.40, 1.00],   # Exit_Mult
-            ])
-            L = np.linalg.cholesky(corr_mat)
-            z = np.random.standard_normal((n, n_vars))
-            z_corr = z @ L.T
-            # Convert to uniforms via standard-normal CDF (Gaussian copula)
-            u = stats.norm.cdf(z_corr)
-        else:
-            u = np.random.uniform(0, 1, size=(n, n_vars))
-
-        # Map uniforms to triangular distributions
-        samples = np.zeros_like(u)
-        for i, key in enumerate(keys):
-            lo, mode, hi = params[key]
-            # Triangular CDF inversion
-            c = (mode - lo) / (hi - lo)
-            below = u[:, i] < c
-            samples[below, i] = lo + np.sqrt(u[below, i] * (hi - lo) * (mode - lo))
-            samples[~below, i] = hi - np.sqrt((1 - u[~below, i]) * (hi - lo) * (hi - mode))
-
-        # Run model for each sample
-        moics = np.zeros(n)
-        irrs  = np.zeros(n)
-        for i in range(n):
-            cfg = dict(CARDIO)
-            cfg["Growth"]        = samples[i, 0] / 100
-            cfg["Margin_Y0"]     = samples[i, 1] / 100
-            cfg["Margin_Target"] = samples[i, 2] / 100
-            cfg["Entry_Mult"]    = samples[i, 3]
-            cfg["Exit_Mult"]     = samples[i, 4]
-            # LTV-cap debt at 60% of EV (lender practice for HC services)
-            cfg["Debt_Mult"]     = min(6.0, 0.60 * samples[i, 3])
-            out = model(cfg, basis="EBITDA")
-            moics[i] = out["moic"]
-            irrs[i]  = out["irr"]
-
-        df = pd.DataFrame(samples, columns=keys)
-        df["MOIC"] = moics
-        df["IRR"]  = irrs * 100
-        return df
+    # run_simulation is now defined at MODULE level (above this function)
+    # so st.cache_data works correctly across reruns.
 
 
     # Build params dict
@@ -282,9 +281,9 @@ def render():
             st.error(f"{k}: low ({lo}) ≤ mode ({mode}) ≤ high ({hi}) required.")
             st.stop()
 
-    # Run simulation
-    with st.spinner(f"Running {n_iter:,} Monte Carlo iterations…"):
-        df = run_simulation(n_iter, params, use_correlation)
+    # Run simulation — pass params as a frozen tuple so st.cache_data hashes correctly
+    params_tuple = tuple((k, tuple(v)) for k, v in params.items())
+    df = run_simulation(n_iter, params_tuple, use_correlation)
 
     # -------------------------------------------------------------------
     # Headline stats — written for a layperson
