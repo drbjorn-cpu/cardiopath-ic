@@ -367,14 +367,14 @@ def render():
          dict(Growth=0.09, Margin_Target=0.265, Ramp_Years=4, Capex_Pct=0.055, Exit_Mult=11.5)),
     ]
     SCENARIO_DEFS_RISK = [
-        ("⚠ CMS rate cut",                "Medicare cuts margin -2pp; absorbed by bid discipline",
-         dict(Margin_Y0=0.19, Margin_Target=0.19)),
-        ("⚠ Multiple compression 7.0×",    "Sector de-rate / FTC; below hurdle, no capital loss",
+        ("⚠ CMS rate cut",                "Margin compressed -2pp post-close (still paid 8.5× of 21%); below hurdle, capital preserved",
+         dict(Margin_Y0=0.19, Margin_Target=0.19, Margin_Pricing=0.21)),
+        ("⚠ Multiple compression 7.0×",    "Sector de-rate / FTC; below hurdle, capital preserved",
          dict(Exit_Mult=7.0)),
         ("⚠ M&A pipeline misses",         "Growth slows to 2%; positive but below hurdle",
          dict(Growth=0.02)),
-        ("💀 Triple hit",                  "All three failure modes simultaneously",
-         dict(Growth=0.02, Margin_Y0=0.19, Margin_Target=0.19, Exit_Mult=7.0)),
+        ("💀 Triple hit",                  "All three at once; ~17% capital loss at 8.5× (vs ~45% at 9.5×)",
+         dict(Growth=0.02, Margin_Y0=0.19, Margin_Target=0.19, Margin_Pricing=0.21, Exit_Mult=7.0)),
     ]
 
     # Compute scenario IRRs at the CURRENT bid mode's entry multiple

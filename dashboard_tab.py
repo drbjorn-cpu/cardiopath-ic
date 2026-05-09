@@ -116,7 +116,7 @@ def render():
     # Unit conversion helpers
     # -------------------------------------------------------------------
     PERCENT_KEYS = {
-        "Growth", "Margin_Y0", "Margin_Target",
+        "Growth", "Margin_Y0", "Margin_Target", "Margin_Pricing",
         "Capex_Pct", "DNWC_Pct", "DA_Pct",
         "Tax_Rate", "Fee_Pct", "Int_Rate", "Amort_Pct", "Sweep_Pct",
     }
@@ -251,15 +251,15 @@ def render():
         # ------------------- RISK / BEAR -------------------
         "⚠ CMS rate cut (-2pp margin)": {
             "kind": "risk",
-            "values": dict(Growth=4.0, Margin_Y0=19.0, Margin_Target=19.0, Ramp_Years=3,
-                           Capex_Pct=5.0, Exit_Mult=9.5),
-            "blurb": "MPFS cuts margin -2pp. **MOIC 2.22× / IRR 17.3%** — needs operational lever to recover.",
+            "values": dict(Growth=4.0, Margin_Y0=19.0, Margin_Target=19.0, Margin_Pricing=21.0,
+                           Ramp_Years=3, Capex_Pct=5.0, Exit_Mult=9.5),
+            "blurb": "MPFS cuts margin -2pp post-close (we still paid 8.5× of 21%). **MOIC 1.83× / IRR 12.8%** — below hurdle, capital preserved.",
             "details": """
     **Inputs changed:** Margin_Y0 21% → **19%** · Margin_Target 21% → **19%** (-2pp permanent)
 
-    **The scenario:** CMS releases the annual MPFS with a 5–7% cut to top cardiac dx codes (CPT 78451 nuclear MPI, 93306 echocardiography, etc.). Margin compresses 2pp permanently.
+    **The scenario:** We close at $607m / $258m equity on the basis of stated 21% margin. *After* close, CMS releases the annual MPFS with a 5–7% cut to top cardiac dx codes (CPT 78451 nuclear MPI, 93306 echocardiography, etc.) and margin compresses 2pp permanently. Entry sizing is locked; operating cash flow is lower.
 
-    **Why so mild:** Our base already assumes flat margin. CMS rate cut just confirms the base. Net IRR delta is only -0.3pp from base 17.6%.
+    **Magnitude:** IRR drops from 17.6% to **12.8%** — a -4.8pp hit. Below 20% hurdle, but capital preserved (1.83× MOIC).
 
     **Mitigation:** Payer-mix shift toward commercial. Each 1pp Medicare → Commercial = ~30bps of margin recovery. 5pp shift over 3 years offsets one 10% MPFS cut.
 
@@ -309,15 +309,15 @@ def render():
         },
         "💀 Triple hit": {
             "kind": "risk",
-            "values": dict(Growth=2.0, Margin_Y0=19.0, Margin_Target=19.0, Ramp_Years=3,
-                           Capex_Pct=5.0, Exit_Mult=7.0),
-            "blurb": "All three failure modes. **MOIC 1.12× / IRR 2.3%** — capital preserved (vs −5% loss at 9.5× entry).",
+            "values": dict(Growth=2.0, Margin_Y0=19.0, Margin_Target=19.0, Margin_Pricing=21.0,
+                           Ramp_Years=3, Capex_Pct=5.0, Exit_Mult=7.0),
+            "blurb": "All three failure modes. **MOIC 0.83× / IRR −3.5%** — ~17% capital loss at 8.5×, vs ~45% loss at 9.5× (≈$85m saved by bid discipline).",
             "details": """
     **Inputs changed:** All three bear scenarios combined — Growth 2% · Margin 19% · Exit 7.0×
 
     **The scenario:** CMS rate cut, M&A pipeline failure, AND multiple compression — all three at once. Most adversarial scenario in the simulation.
 
-    **Why bid discipline matters here:** At 8.5× entry, even Triple Hit returns +2.3% — capital preserved. At 9.5× entry, the same scenario is **-4 to -5% IRR** = ~25% capital loss. **The 1-turn entry-multiple difference rescues ~\$50m of capital in the worst case.**
+    **Why bid discipline matters here:** At 8.5× entry, Triple Hit is **−3.5% IRR / 0.83× MOIC = ~17% loss of equity (~\$45m on $258m check)**. At 9.5× entry, the same scenario is **−11.3% IRR / 0.55× MOIC = ~45% loss of equity (~\$130m on $288m check)**. **One turn of bid discipline rescues ~\$85m of capital in the worst case.** The deal is no longer "wipeout-proof" — it's "wipeout-mitigated."
 
     **Probability:** ~5–15% (correlated events: regulatory pressure → multiple compression → M&A market cools → all happen together).
 

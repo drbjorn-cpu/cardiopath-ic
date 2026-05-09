@@ -5,6 +5,10 @@ def model(inp, basis="EBITDA"):
     g          = inp["Growth"]
     m0         = inp["Margin_Y0"]
     mt         = inp["Margin_Target"]
+    # Margin_Pricing = the margin underwritten at the bid (sets EV / debt / equity).
+    # Decoupled from Margin_Y0 so post-close margin compression (CMS cut, etc.)
+    # doesn't shrink the deal we actually closed at $607m / $258m equity.
+    m_price    = inp.get("Margin_Pricing", m0)
     ramp       = inp["Ramp_Years"]
     capex_pct  = inp["Capex_Pct"]
     dnwc_pct   = inp["DNWC_Pct"]
@@ -19,11 +23,12 @@ def model(inp, basis="EBITDA"):
     sweep      = inp["Sweep_Pct"]
     em_out     = inp["Exit_Mult"]
 
-    ebitda0 = rev0 * m0
-    ev      = (rev0 * em_in) if basis == "ARR" else (ebitda0 * em_in)
+    ebitda_pricing = rev0 * m_price
+    ebitda0        = rev0 * m0
+    ev      = (rev0 * em_in) if basis == "ARR" else (ebitda_pricing * em_in)
     fees    = ev * fee_pct
     uses    = ev + fees
-    debt0   = ebitda0 * debt_mult
+    debt0   = ebitda_pricing * debt_mult
     equity  = uses - debt0
 
     rev   = [rev0]
@@ -78,7 +83,8 @@ ARIA = dict(Rev_Y0=720, Growth=0.05, Margin_Y0=0.16, Margin_Target=0.19, Ramp_Ye
             Entry_Mult=9.5, Fee_Pct=0.025, Debt_Mult=5.5, Int_Rate=0.075,
             Amort_Pct=0.01, Sweep_Pct=0.75, Exit_Mult=9.5)
 
-CARDIO = dict(Rev_Y0=340, Growth=0.04, Margin_Y0=0.21, Margin_Target=0.21, Ramp_Years=3,
+CARDIO = dict(Rev_Y0=340, Growth=0.04, Margin_Y0=0.21, Margin_Target=0.21, Margin_Pricing=0.21,
+              Ramp_Years=3,
               Capex_Pct=0.05, DNWC_Pct=0.10, DA_Pct=0.06, Tax_Rate=0.25, Hold=5,
               Entry_Mult=8.5, Fee_Pct=0.025, Debt_Mult=5.1, Int_Rate=0.085,
               Amort_Pct=0.01, Sweep_Pct=0.50, Exit_Mult=9.5)
