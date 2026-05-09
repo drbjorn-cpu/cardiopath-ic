@@ -31,6 +31,33 @@ from dashboard_tab import render as render_dashboard
 from montecarlo_tab import render as render_montecarlo
 from vote_tab import render_vote, render_results
 
+
+# -------------------------------------------------------------------
+# Shared pending-bid handler
+# Both dashboard and MC tabs render every page interaction. The previous
+# design had each tab handle "_pending_bid" independently, but whichever
+# tab rendered first would consume the key, leaving the other tab stale.
+# Centralising here so a single button click updates both pages' state.
+# -------------------------------------------------------------------
+_DASH_BID_VALUES = {
+    "anchor":   {"Entry_Mult": 8.5, "Debt_Mult": 5.1},
+    "stretch":  {"Entry_Mult": 9.0, "Debt_Mult": 5.4},
+    "original": {"Entry_Mult": 9.5, "Debt_Mult": 5.7},
+}
+_MC_BID_VALUES = {
+    "anchor":   {"em_in_lo": 8.0, "em_in_mod": 8.5, "em_in_hi": 9.0},
+    "stretch":  {"em_in_lo": 8.5, "em_in_mod": 9.0, "em_in_hi": 9.5},
+    "original": {"em_in_lo": 9.0, "em_in_mod": 9.5, "em_in_hi": 10.0},
+}
+
+if "_pending_bid" in st.session_state:
+    bid_key = st.session_state.pop("_pending_bid")
+    for k, v in _DASH_BID_VALUES.get(bid_key, {}).items():
+        st.session_state[k] = v
+    for k, v in _MC_BID_VALUES.get(bid_key, {}).items():
+        st.session_state[k] = v
+    st.session_state["_active_bid"] = bid_key
+
 # ---------- Custom CSS for the login screen + tabs ----------
 st.markdown("""
 <style>

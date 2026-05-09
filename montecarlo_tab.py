@@ -130,7 +130,7 @@ def render():
     # Default values (used by Reset button)
     # -------------------------------------------------------------------
     DEFAULTS = {
-        "n_iter": 10000,
+        "n_iter": 5000,
         "use_correlation": True,
         "g_lo": 2.0, "g_mod": 6.0, "g_hi": 11.0,
         "my0_lo": 19.0, "my0_mod": 21.0, "my0_hi": 22.0,
@@ -159,14 +159,8 @@ def render():
         },
     }
 
-    # Apply pending bid posture BEFORE widgets render
-    if "_pending_bid" in st.session_state:
-        bid_key = st.session_state.pop("_pending_bid")
-        posture = MC_BID_POSTURES[bid_key]
-        st.session_state["em_in_lo"]  = posture["em_in_lo"]
-        st.session_state["em_in_mod"] = posture["em_in_mod"]
-        st.session_state["em_in_hi"]  = posture["em_in_hi"]
-        st.session_state["_active_bid"] = bid_key
+    # NOTE: pending-bid handler moved to app.py (shared across tabs)
+    # so a single click updates both Dashboard AND MC state consistently.
 
     # Initialise session state on first load
     for k, v in DEFAULTS.items():

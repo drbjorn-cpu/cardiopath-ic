@@ -341,13 +341,8 @@ def render():
         for k, v in PRESETS[preset_key]["values"].items():
             st.session_state[k] = v
 
-    if "_pending_bid" in st.session_state:
-        # Bid posture: changes Entry_Mult and Debt_Mult only
-        bid_key = st.session_state.pop("_pending_bid")
-        em = BID_POSTURES[bid_key]["Entry_Mult"]
-        st.session_state["Entry_Mult"] = em
-        st.session_state["Debt_Mult"] = ltv_capped_debt_mult(em)
-        st.session_state["_active_bid"] = bid_key
+    # NOTE: pending-bid handler moved to app.py (shared across tabs)
+    # so a single click updates both Dashboard AND MC state consistently.
 
     # Initialise on first load
     for k, v in CARDIO_DISPLAY.items():
