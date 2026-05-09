@@ -197,9 +197,10 @@ def render():
             st.caption(info["blurb"])
 
     # -------------------------------------------------------------------
-    # Sidebar — input ranges (plain language)
+    # Sidebar — only render when "Monte Carlo" is the selected panel.
     # -------------------------------------------------------------------
-    with st.sidebar:
+    if st.session_state.get("_active_panel", "dashboard") == "mc":
+      with st.sidebar:
         st.markdown("## Set the input ranges")
         st.caption("For each input, set the **worst case (Low)**, **most likely (Mode)**, and **best case (High)**. The simulation samples randomly within each range.")
 

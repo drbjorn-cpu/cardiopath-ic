@@ -163,6 +163,24 @@ with top_right:
         st.rerun()
 
 
+# ---------- Sidebar panel selector ----------
+# Streamlit can't auto-detect which tab is active, so we let the user
+# choose which set of sidebar inputs is displayed. Avoids confusion
+# when the dashboard sidebar is visible while on the MC tab (where it
+# does nothing).
+with st.sidebar:
+    panel = st.radio(
+        "Sidebar controls",
+        ["📊 Dashboard inputs", "🎲 Monte Carlo inputs"],
+        horizontal=True,
+        index=0,
+        help="Switches which set of sidebar inputs is active. Match this to the tab you're using.",
+        key="_panel_selector",
+    )
+    st.session_state["_active_panel"] = "mc" if "Monte" in panel else "dashboard"
+    st.divider()
+
+
 # ---------- Tabs ----------
 tab_dash, tab_mc, tab_vote, tab_results = st.tabs([
     "📊 IC Dashboard",

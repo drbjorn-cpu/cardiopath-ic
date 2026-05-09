@@ -351,9 +351,12 @@ def render():
     st.session_state.setdefault("auto_ltv", True)
 
     # -------------------------------------------------------------------
-    # Sidebar
+    # Sidebar — only render when the user has selected "Dashboard" panel.
+    # When on Monte Carlo, the dashboard sidebar is hidden to prevent
+    # confusion (those inputs don't affect MC simulation).
     # -------------------------------------------------------------------
-    with st.sidebar:
+    if st.session_state.get("_active_panel", "dashboard") == "dashboard":
+      with st.sidebar:
         st.markdown("## Inputs")
         st.caption("Every yellow cell from the workbook")
 
